@@ -25,7 +25,6 @@ import numpy as np
 import torch
 from gymnasium.spaces import Box
 from gymnasium.utils.save_video import save_video
-from torch import nn
 
 from omnisafe.algorithms.model_based.base.ensemble import EnsembleDynamicsModel
 from omnisafe.algorithms.model_based.planner import (
@@ -37,16 +36,6 @@ from omnisafe.algorithms.model_based.planner import (
     SafeARCPlanner,
 )
 from omnisafe.common import Normalizer
-from omnisafe.common.control_barrier_function.crabs.models import (
-    AddGaussianNoise,
-    CrabsCore,
-    ExplorationPolicy,
-    MeanPolicy,
-    MultiLayerPerceptron,
-)
-from omnisafe.common.control_barrier_function.crabs.optimizers import Barrier
-from omnisafe.common.control_barrier_function.crabs.utils import Normalizer as CRABSNormalizer
-from omnisafe.common.control_barrier_function.crabs.utils import create_model_and_trainer
 from omnisafe.envs.core import CMDP, make
 from omnisafe.envs.wrapper import ActionRepeat, ActionScale, ObsNormalize, TimeLimit
 from omnisafe.models.actor import ActorBuilder
@@ -150,13 +139,11 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
         # load the saved model
         model_path = os.path.join(save_dir, 'torch_save', model_name)
         try:
-            model_params = torch.load(model_path, weights_only=False)
+            model_params = torch.load(model_path)
         except FileNotFoundError as error:
             raise FileNotFoundError('The model is not found in the save directory.') from error
 
         # load the environment
-        if env_kwargs['env_id'] == 'SafeMetaDrive':
-            env_kwargs['meta_drive_config'].update({'num_scenarios': 1})
         self._env = make(**env_kwargs)
 
         observation_space = self._env.observation_space
@@ -302,55 +289,6 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
             self._actor = actor_builder.build_actor(actor_type)
             self._actor.load_state_dict(model_params['pi'])
 
-        if self._cfgs['algo'] in ['CRABS']:
-            self._init_crabs(model_params)
-
-    def _init_crabs(self, model_params: dict) -> None:
-        mean_policy = MeanPolicy(self._actor)
-        assert self._env is not None, 'The environment must be provided or created.'
-        assert self._actor is not None, 'The actor must be provided or created.'
-        assert (
-            self._env.observation_space.shape is not None
-        ), 'The observation space does not exist.'
-        assert self._env.action_space.shape is not None, 'The action space does not exist.'
-        normalizer = CRABSNormalizer(self._env.observation_space.shape[0], clip=1000).to(
-            torch.device('cpu'),
-        )
-        model, _ = create_model_and_trainer(
-            self._cfgs,
-            self._env.observation_space.shape[0],
-            self._env.action_space.shape[0],
-            normalizer,
-            torch.device('cpu'),
-        )
-        s0 = torch.tensor(
-            self._env.reset()[0],
-            device=torch.device('cpu'),
-            dtype=torch.float32,
-        )
-        h = Barrier(
-            nn.Sequential(
-                normalizer,
-                MultiLayerPerceptron([self._env.observation_space.shape[0], 256, 256, 1]),
-            ),
-            # pylint: disable-next=protected-access
-            self._env._env.env.barrier_fn,  # type: ignore
-            s0,
-            self._cfgs.lyapunov,
-        ).to(torch.device('cpu'))
-        h.load_state_dict(model_params['h'])
-        model.load_state_dict(model_params['models'])
-        core = CrabsCore(h, model, mean_policy, self._cfgs.crabs)  # type: ignore
-        self._actor = ExplorationPolicy(
-            AddGaussianNoise(
-                self._actor,  # type: ignore
-                0.0,
-                self._cfgs.algo_cfgs.exploration_noise,
-            ),
-            core,
-        )
-        self._actor.predict = self._actor.step  # type: ignore
-
     # pylint: disable-next=too-many-locals
     def load_saved(
         self,
@@ -434,13 +372,8 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
                 with torch.no_grad():
                     if self._actor is not None:
                         act = self._actor.predict(
-                            obs.reshape(
-                                -1,
-                                obs.shape[-1],  # to make sure the shape is (1, obs_dim)
-                            ),
+                            obs,
                             deterministic=True,
-                        ).reshape(
-                            -1,  # to make sure the shape is (act_dim,)
                         )
                     elif self._planner is not None:
                         act = self._planner.output_action(
@@ -472,7 +405,7 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
             episode_costs.append(ep_cost)
             episode_lengths.append(length)
 
-            print(f'Episode {episode} results:')
+            print(f'Episode {episode+1} results:')
             print(f'Episode reward: {ep_ret}')
             print(f'Episode cost: {ep_cost}')
             print(f'Episode length: {length}')
@@ -562,13 +495,8 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
                 with torch.no_grad():
                     if self._actor is not None:
                         act = self._actor.predict(
-                            obs.reshape(
-                                -1,
-                                obs.shape[-1],  # to make sure the shape is (1, obs_dim)
-                            ),
+                            obs,
                             deterministic=True,
-                        ).reshape(
-                            -1,  # to make sure the shape is (act_dim,)
                         )
                     elif self._planner is not None:
                         act = self._planner.output_action(
@@ -616,7 +544,7 @@ class Evaluator:  # pylint: disable=too-many-instance-attributes
             episode_costs.append(ep_cost)
             episode_lengths.append(length)
             with open(result_path, 'a+', encoding='utf-8') as f:
-                print(f'Episode {episode_idx} results:', file=f)
+                print(f'Episode {episode_idx+1} results:', file=f)
                 print(f'Episode reward: {ep_ret}', file=f)
                 print(f'Episode cost: {ep_cost}', file=f)
                 print(f'Episode length: {length}', file=f)

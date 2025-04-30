@@ -51,14 +51,13 @@ class MLPActor(Actor):
         weight_initialization_mode: InitFunction = 'kaiming_uniform',
     ) -> None:
         """Initialize an instance of :class:`MLPActor`."""
-        super().__init__(obs_space, act_space, hidden_sizes, activation, weight_initialization_mode)
+        super().__init__(obs_space, act_space, hidden_sizes, activation, weight_initialization_mode,output_activation)
 
         self.net: torch.nn.Module = build_mlp_network(
             sizes=[self._obs_dim, *self._hidden_sizes, self._act_dim],
             activation=activation,
             output_activation=output_activation,
-            weight_initialization_mode=weight_initialization_mode,
-        )
+            weight_initialization_mode=weight_initialization_mode)
         self._noise: float = 0.1
 
     def predict(

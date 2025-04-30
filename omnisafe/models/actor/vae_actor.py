@@ -47,15 +47,16 @@ class VAE(Actor):
         hidden_sizes: List[int],
         activation: Activation = 'relu',
         weight_initialization_mode: InitFunction = 'kaiming_uniform',
+        output_activation: Activation = 'relu',
     ) -> None:
         """Initialize an instance of :class:`VAE`."""
-        super().__init__(obs_space, act_space, hidden_sizes, activation, weight_initialization_mode)
+        super().__init__(obs_space, act_space, hidden_sizes, activation, weight_initialization_mode,output_activation)
         self._latent_dim = self._act_dim * 2
 
         self._encoder = build_mlp_network(
             sizes=[self._obs_dim + self._act_dim, *hidden_sizes, self._latent_dim * 2],
             activation=activation,
-            weight_initialization_mode=weight_initialization_mode,
+            weight_initialization_mode=weight_initialization_mode,output_activation = output_activation
         )
         self._decoder = build_mlp_network(
             sizes=[self._obs_dim + self._latent_dim, *hidden_sizes, self._act_dim],

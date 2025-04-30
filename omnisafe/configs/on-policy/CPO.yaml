@@ -117,6 +117,7 @@ defaults:
       # activation function
       activation: tanh
       # out_activation: tanh
+      output_activation: tanh
       # learning rate
       lr: ~
     critic:
@@ -126,49 +127,11 @@ defaults:
       activation: tanh
       # learning rate
       lr: 0.001
-
-SafeMetaDrive:
-  # training configurations
-  train_cfgs:
-    # total number of steps to train
-    total_steps: 500000
-  # logger configurations
-  logger_cfgs:
-    # save model frequency
-    save_model_freq: 15
-  # algorithm configurations
-  algo_cfgs:
-    # batch size for each iteration
-    batch_size: 512
-    # number of steps to update the policy
-    steps_per_epoch: 3000
-    # number of iterations to update the policy
-    update_iters: 10
-    # normalize reward
-    reward_normalize: False
-    # normalize cost
-    cost_normalize: True
-    # normalize observation
-    obs_normalize: False
-    # max gradient norm
-    max_grad_norm: 20.0
-    cost_limit: 1
-  # model configurations
-  model_cfgs:
-    # actor network configurations
-    actor:
-      # size of hidden layers
-      hidden_sizes: [256, 256]
-      # learning rate
-      lr: 0.00005
-    # critic network configurations
-    critic:
-      # size of hidden layers
-      hidden_sizes: [256, 256]
-      # learning rate
-      lr: 0.00005
   # environment specific configurations
   env_cfgs:
+    env_init_config:
+      T: 24
+      penalty_factor_UT: 99
   # safe meta drive configurations. More details refer to https://github.com/decisionforce/EGPO
     meta_drive_config:
       # max iterations of interactions

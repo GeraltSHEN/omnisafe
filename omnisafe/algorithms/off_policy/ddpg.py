@@ -128,7 +128,6 @@ class DDPG(BaseAlgo):
             size=self._cfgs.algo_cfgs.size,
             batch_size=self._cfgs.algo_cfgs.batch_size,
             num_envs=self._cfgs.train_cfgs.vector_env_nums,
-            penalty_coefficient=self._cfgs.algo_cfgs.get('penalty_coefficient', 0.0),
             device=self._device,
         )
 
@@ -197,32 +196,14 @@ class DDPG(BaseAlgo):
         self._logger.setup_torch_saver(what_to_save)
         self._logger.torch_save()
 
-        self._logger.register_key(
-            'Metrics/EpRet',
-            window_length=self._cfgs.logger_cfgs.window_lens,
-        )
-        self._logger.register_key(
-            'Metrics/EpCost',
-            window_length=self._cfgs.logger_cfgs.window_lens,
-        )
-        self._logger.register_key(
-            'Metrics/EpLen',
-            window_length=self._cfgs.logger_cfgs.window_lens,
-        )
+        self._logger.register_key('Metrics/EpRet', window_length=50)
+        self._logger.register_key('Metrics/EpCost', window_length=50)
+        self._logger.register_key('Metrics/EpLen', window_length=50)
 
         if self._cfgs.train_cfgs.eval_episodes > 0:
-            self._logger.register_key(
-                'Metrics/TestEpRet',
-                window_length=self._cfgs.logger_cfgs.window_lens,
-            )
-            self._logger.register_key(
-                'Metrics/TestEpCost',
-                window_length=self._cfgs.logger_cfgs.window_lens,
-            )
-            self._logger.register_key(
-                'Metrics/TestEpLen',
-                window_length=self._cfgs.logger_cfgs.window_lens,
-            )
+            self._logger.register_key('Metrics/TestEpRet', window_length=50)
+            self._logger.register_key('Metrics/TestEpCost', window_length=50)
+            self._logger.register_key('Metrics/TestEpLen', window_length=50)
 
         self._logger.register_key('Train/Epoch')
         self._logger.register_key('Train/LR')

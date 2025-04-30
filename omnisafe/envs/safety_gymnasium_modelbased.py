@@ -174,7 +174,6 @@ class SafetyGymnasiumModelBased(CMDP):  # pylint: disable=too-many-instance-attr
             cost: Batch cost.
         """
         assert torch.is_tensor(obs), 'obs must be tensor'
-        assert len(obs.shape) == 2 or len(obs.shape) == 3
         hazards_key = self.key_to_slice_tensor['hazards']
         if len(obs.shape) == 2:
             batch_size = obs.shape[0]
@@ -182,11 +181,7 @@ class SafetyGymnasiumModelBased(CMDP):  # pylint: disable=too-many-instance-attr
         elif len(obs.shape) == 3:
             batch_size = obs.shape[0] * obs.shape[1]
             hazard_obs = obs[:, :, hazards_key].reshape(batch_size, -1, 2)
-        else:
-            raise RuntimeError('observation size mismatch')
-        hazards_dist = torch.sqrt(
-            torch.sum(torch.square(hazard_obs), dim=2),
-        ).reshape(
+        hazards_dist = torch.sqrt(torch.sum(torch.square(hazard_obs), dim=2)).reshape(
             batch_size,
             -1,
         )
@@ -504,7 +499,7 @@ class SafetyGymnasiumModelBased(CMDP):  # pylint: disable=too-many-instance-attr
             info['goal_met'] = False
 
             obs = torch.as_tensor(flat_coordinate_obs, dtype=torch.float32, device=self._device)
-        return obs, info  # pylint: disable=possibly-used-before-assignment
+        return obs, info
 
     def set_seed(self, seed: int) -> None:
         """Set the seed for the environment.
