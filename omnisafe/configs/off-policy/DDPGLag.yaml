@@ -98,6 +98,7 @@ defaults:
       hidden_sizes: [256, 256]
       # Activation function
       activation: relu
+      output_activation: tanh
       # The learning rate of Actor network
       lr: 0.0003
     # Configuration of Critic network
@@ -120,6 +121,23 @@ defaults:
     lambda_lr: 0.00001
     # Type of lagrangian optimizer
     lambda_optimizer: "Adam"
+  # environment specific configurations
+  env_cfgs:
+    env_init_config:
+      T: 24
+      penalty_factor_UT: 99
+  # safe meta drive configurations. More details refer to https://github.com/decisionforce/EGPO
+    meta_drive_config:
+      # max iterations of interactions
+      horizon: 1500
+      # whether to use random traffic
+      random_traffic: False
+      # the penalty when crash into other vehicles
+      crash_vehicle_penalty: 1.
+      # the penalty when crash into other objects
+      crash_object_penalty: 0.5
+      # the penalty when out of road
+      out_of_road_penalty: 1.
 
 SafetyCarCircle1-v0:
   # model configurations
